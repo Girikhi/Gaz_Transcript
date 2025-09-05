@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Farsi to English Converter</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
+    textarea {
+      width: 100%; height: 100px; padding: 10px;
+      margin-bottom: 15px; border-radius: 8px;
+      border: 1px solid #ccc; font-size: 16px;
+    }
+    #editor { height: 200px; }
+    button {
+      padding: 10px 15px; margin: 5px 0;
+      border: none; border-radius: 6px;
+      background: #4CAF50; color: white;
+      cursor: pointer; font-size: 14px;
+    }
+    button:hover { background: #45a049; }
+  </style>
+</head>
+<body>
+  <h2>Farsi Input</h2>
+  <textarea id="input"></textarea>
+
+  <h2>English Output</h2>
+  <textarea id="output" readonly></textarea>
+
+  <h2>Mapping Rules</h2>
+  <textarea id="editor"></textarea><br>
+  <button id="apply">Apply Changes</button>
+  <button id="save">Download mappings.txt</button>
+
+  <script>
+    let mappings = {};
+
+    // Load mappings.txt (same folder as index.html)
+    fetch("mappings.txt")
+      .then(response => response.text())
+      .then(text => {
+        document.getElementById("editor").value = text;
+        parseMappings(text);
+      });
+
+    function parseMappings(text) {
+      mappings = {};
+      text.split("\n").forEach(line => {
+        const [fa, en] = line.split("=");
+        if (fa && en) mappings[fa.trim()] = en.trim();
+      });
+    }
+
+    const inputBox = document.getElementById("input");
+    const outputBox = document.getElementById("output");
+
+    inputBox.addEventListener("input", () => {
+      convertText();
+    });
+
+    function convertText() {
+      let text = inputBox.value;
+      for (const [fa, en] of Object.entries(mappings)) {
+        text = text.replace(new RegExp(fa, "g"), en);
+      }
+      outputBox.value = text;
+    }
+
+    // Apply edited mappings
+    document.getElementById("apply").addEventListener("click", () => {
+      const newText = document.getElementById("editor").value;
+      parseMappings(newText);
+      convertText();
+    });
+
+    // Save mappings.txt
+    document.getElementById("save").addEventListener("click", () => {
+      const text = document.getElementById("editor").value;
+      const blob = new Blob([text], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "mappings.txt";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
