@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Gaz to English Converter</title>
+  <title>Gaz ↔ English Converter</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
     textarea {
@@ -22,10 +22,10 @@
 </head>
 <body>
   <h2>Farsi Input</h2>
-  <textarea id="input"></textarea>
+  <textarea id="farsi"></textarea>
 
   <h2>English Output</h2>
-  <textarea id="output" readonly></textarea>
+  <textarea id="english"></textarea>
 
   <h2>Mapping Rules</h2>
   <textarea id="editor"></textarea><br>
@@ -33,9 +33,11 @@
   <button id="save">Download mappings.txt</button>
 
   <script>
-    let mappings = {};
+    let mappings = {};         // Farsi -> English
+    let reverseMappings = {};  // English -> Farsi
+    let isUpdating = false;    // prevent infinite loop
 
-    // Load mappings.txt (same folder as index.html)
+    // Load mappings.txt
     fetch("mappings.txt")
       .then(response => response.text())
       .then(text => {
@@ -45,32 +47,45 @@
 
     function parseMappings(text) {
       mappings = {};
+      reverseMappings = {};
       text.split("\n").forEach(line => {
         const [fa, en] = line.split("=");
-        if (fa && en) mappings[fa.trim()] = en.trim();
+        if (fa && en) {
+          mappings[fa.trim()] = en.trim();
+          reverseMappings[en.trim()] = fa.trim();
+        }
       });
     }
 
-    const inputBox = document.getElementById("input");
-    const outputBox = document.getElementById("output");
+    const farsiBox = document.getElementById("farsi");
+    const englishBox = document.getElementById("english");
 
-    inputBox.addEventListener("input", () => {
-      convertText();
+    farsiBox.addEventListener("input", () => {
+      if (isUpdating) return;
+      isUpdating = true;
+      englishBox.value = convertText(farsiBox.value, mappings);
+      isUpdating = false;
     });
 
-    function convertText() {
-      let text = inputBox.value;
-      for (const [fa, en] of Object.entries(mappings)) {
-        text = text.replace(new RegExp(fa, "g"), en);
+    englishBox.addEventListener("input", () => {
+      if (isUpdating) return;
+      isUpdating = true;
+      farsiBox.value = convertText(englishBox.value, reverseMappings);
+      isUpdating = false;
+    });
+
+    function convertText(text, map) {
+      for (const [k, v] of Object.entries(map)) {
+        text = text.replace(new RegExp(k, "g"), v);
       }
-      outputBox.value = text;
+      return text;
     }
 
     // Apply edited mappings
     document.getElementById("apply").addEventListener("click", () => {
       const newText = document.getElementById("editor").value;
       parseMappings(newText);
-      convertText();
+      farsiBox.dispatchEvent(new Event("input")); // refresh conversion
     });
 
     // Save mappings.txt
@@ -88,4 +103,3 @@
   </script>
 </body>
 </html>
-
